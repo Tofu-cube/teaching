@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冒險者公會 - 學生名錄</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Noto+Serif+TC:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 全域設定 --- */
+        body {
+            background-color: #111;
+            color: #e0e0e0;
+            font-family: 'Noto Serif TC', serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 頂部導覽列 */
+        header {
+            background: #0a0a0a;
+            padding: 15px 30px;
+            border-bottom: 2px solid #c9a55c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        header h1 { 
+            margin: 0; 
+            color: #c9a55c; 
+            font-family: 'Cinzel Decorative'; 
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(201, 165, 92, 0.3);
+        }
+        .back-btn { 
+            text-decoration: none; 
+            color: #c9a55c; 
+            border: 1px solid #c9a55c; 
+            padding: 8px 20px; 
+            transition: 0.3s;
+            font-family: 'Cinzel Decorative';
+            font-weight: bold;
+        }
+        .back-btn:hover { 
+            background: #c9a55c; 
+            color: #000; 
+            box-shadow: 0 0 15px #c9a55c;
+        }
+
+        .container { display: flex; flex: 1; height: 100%; }
+
+        /* 左側：冒險者名單 */
+        .sidebar {
+            width: 320px;
+            background: #161616;
+            border-right: 1px solid #333;
+            overflow-y: auto;
+            position: relative;
+            z-index: 5;
+        }
+
+        .student-item {
+            padding: 20px;
+            border-bottom: 1px solid #2a2a2a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+            opacity: 0.7;
+        }
+        .student-item:hover { opacity: 1; background: #222; }
+        .student-item.active {
+            opacity: 1;
+            background: linear-gradient(90deg, rgba(201, 165, 92, 0.1), transparent);
+            border-left: 4px solid #c9a55c;
+        }
+        .avatar-small {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: #333; margin-right: 15px; object-fit: cover;
+            border: 2px solid #555;
+        }
+        .info h3 { margin: 0; font-size: 1.1em; color: #f2d184; }
+        .info span { font-size: 0.8em; color: #888; letter-spacing: 1px;}
+
+        /* 右側：角色卡片區 */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at center, #252525 0%, #111 100%);
+            position: relative;
+        }
+
+        .card {
+            background: rgba(20, 20, 20, 0.95);
+            border: 2px solid #c9a55c;
+            padding: 0;
+            border-radius: 10px;
+            width: 900px;
+            height: 550px;
+            display: flex;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 20px rgba(201, 165, 92, 0.1);
+            overflow: hidden;
+        }
+
+        /* 卡片左半邊 */
+        .card-left { 
+            width: 35%; 
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border-right: 1px solid #333;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .avatar-large {
+            width: 160px; height: 160px; 
+            border-radius: 50%;
+            border: 4px solid #c9a55c; 
+            object-fit: cover; 
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(201, 165, 92, 0.3);
+        }
+        .student-name { font-size: 2em; color: #f2d184; margin: 0; font-family: 'Cinzel Decorative'; text-align: center; }
+        .level-badge {
+            margin-top: 10px;
+            background: #c9a55c; color: #000; padding: 5px 20px;
+            border-radius: 20px; font-weight: bold; font-family: 'Cinzel Decorative';
+            letter-spacing: 2px;
+        }
+
+        /* 卡片右半邊：雷達圖顯示區 */
+        .card-right { 
+            flex: 1; 
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle, #222 0%, #111 100%);
+        }
+
+        /* 這是我們自己做的雷達圖容器 */
+        #radarSvg {
+            width: 400px;
+            height: 400px;
+            filter: drop-shadow(0 0 10px rgba(201, 165, 92, 0.3)); /* 發光特效 */
+        }
+        
+        /* 雷達圖的文字樣式 */
+        .chart-label {
+            fill: #ccc;
+            font-size: 14px;
+            font-family: 'Noto Serif TC';
+            text-anchor: middle;
+            font-weight: bold;
+        }
+
+        /* GM 控制區 */
+        .gm-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            border: 1px solid #c9a55c;
+            padding: 15px;
+            border-radius: 5px;
+            width: 250px;
+            display: none; /* 預設隱藏 */
+            z-index: 100;
+        }
+        .gm-panel.show { display: block; }
+        
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #aaa; font-size: 0.9em; }
+        .btn-adj { 
+            background: #333; color: #fff; border: 1px solid #555; 
+            width: 24px; height: 24px; cursor: pointer; margin-left: 3px;
+        }
+        .btn-adj:hover { background: #c9a55c; color: #000; }
+
+        .save-area { position: absolute; bottom: 20px; right: 300px; }
+        textarea { width: 300px; height: 100px; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; display: none;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ADVENTURER GUILD</h1>
+        <div>
+            <button onclick="toggleGMMode()" style="background:transparent; border:none; color:#666; cursor:pointer; font-weight:bold; margin-right:15px;">GM ACCESS</button>
+            <a href="index.html" class="back-btn">RETURN</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar" id="studentList"></div>
+
+        <div class="main-content">
+            <div class="card">
+                <div class="card-left">
+                    <img src="" id="detailAvatar" class="avatar-large">
+                    <h2 id="detailName" class="student-name">--</h2>
+                    <div class="level-badge" id="detailLevel">LV. --</div>
+                </div>
+                
+                <div class="card-right">
+                    <svg id="radarSvg" viewBox="0 0 400 400"></svg>
+                    
+                    <div id="gmControls" class="gm-panel">
+                        <h4 style="color:#c9a55c; margin:0 0 10px 0; border-bottom:1px solid #444; padding-bottom:5px;">數值調整</h4>
+                        <div id="statInputs"></div>
+                        <button onclick="exportData()" style="width:100%; margin-top:10px; background:#c9a55c; border:none; padding:5px; cursor:pointer; font-weight:bold;">產生代碼</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="save-area">
+                <textarea id="saveOutput" placeholder="複製這裡的代碼..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 資料庫區 ---
+        let studentData = [
+            {
+                id: 1,
+                name: "艾利克斯",
+                level: 5,
+                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Alex", 
+                stats: { "單字": 80, "文法": 60, "口說": 40, "聽力": 70, "寫作": 50 }
+            },
+            {
+                id: 2,
+                name: "貝拉",
+                level: 8,
+                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Bella",
+                stats: { "單字": 50, "文法": 90, "口說": 60, "聽力": 80, "寫作": 85 }
+            },
+            {
+                id: 3,
+                name: "查理",
+                level: 3,
+                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Charlie",
+                stats: { "單字": 40, "文法": 40, "口說": 90, "聽力": 50, "寫作": 30 }
+            }
+        ];
+
+        let currentStudentIndex = 0;
+        let isGMMode = false;
+
+        // --- 2. 程式邏輯區 ---
+
+        window.onload = function() {
+            renderList();
+            showStudent(0);
+        };
+
+        function renderList() {
+            const list = document.getElementById('studentList');
+            list.innerHTML = "";
+            studentData.forEach((student, index) => {
+                let item = document.createElement('div');
+                item.className = `student-item ${index === currentStudentIndex ? 'active' : ''}`;
+                item.innerHTML = `
+                    <img src="${student.avatar}" class="avatar-small">
+                    <div class="info">
+                        <h3>${student.name}</h3>
+                        <span>LV. ${student.level}</span>
+                    </div>
+                `;
+                item.onclick = () => showStudent(index);
+                list.appendChild(item);
+            });
+        }
+
+        function showStudent(index) {
+            currentStudentIndex = index;
+            const s = studentData[index];
+
+            document.getElementById('detailName').innerText = s.name;
+            document.getElementById('detailLevel').innerText = "LV. " + s.level;
+            document.getElementById('detailAvatar').src = s.avatar;
+
+            renderList();
+            
+            // 呼叫我們自己寫的雷達圖繪製功能
+            drawNativeRadar(s.stats);
+            
+            renderGMInputs(s);
+        }
+
+        // --- 3. 自製雷達圖核心 (不需外部工具) ---
+        function drawNativeRadar(stats) {
+            const svg = document.getElementById('radarSvg');
+            const keys = Object.keys(stats);
+            const total = keys.length;
+            const radius = 120; // 半徑大小
+            const centerX = 200; // SVG 中心點 X
+            const centerY = 200; // SVG 中心點 Y
+            
+            // 清空舊圖
+            svg.innerHTML = "";
+
+            // 1. 畫背景網格 (同心五角形/多邊形)
+            for (let r = 1; r <= 5; r++) { // 畫 5 層圈圈
+                let gridPoints = "";
+                let curRadius = radius * (r / 5);
+                for (let i = 0; i < total; i++) {
+                    const angle = (Math.PI * 2 * i) / total - (Math.PI / 2);
+                    const x = centerX + curRadius * Math.cos(angle);
+                    const y = centerY + curRadius * Math.sin(angle);
+                    gridPoints += `${x},${y} `;
+                }
+                // 畫出網格線
+                svg.innerHTML += `<polygon points="${gridPoints}" fill="none" stroke="#333" stroke-width="1" />`;
+            }
+
+            // 2. 畫軸線 (從中心射出去的線)
+            let polyPoints = ""; // 紀錄能力值多邊形的點
+            
+            keys.forEach((key, i) => {
+                const angle = (Math.PI * 2 * i) / total - (Math.PI / 2);
+                
+                // 軸線終點
+                const lineX = centerX + radius * Math.cos(angle);
+                const lineY = centerY + radius * Math.sin(angle);
+                
+                // 畫軸線
+                svg.innerHTML += `<line x1="${centerX}" y1="${centerY}" x2="${lineX}" y2="${lineY}" stroke="#444" stroke-width="1" />`;
+                
+                // 計算能力值座標
+                const value = stats[key];
+                const valRadius = radius * (value / 100);
+                const valX = centerX + valRadius * Math.cos(angle);
+                const valY = centerY + valRadius * Math.sin(angle);
+                polyPoints += `${valX},${valY} `;
+
+                // 畫文字標籤
+                const labelRadius = radius + 25; // 文字離中心更遠一點
+                const labelX = centerX + labelRadius * Math.cos(angle);
+                const labelY = centerY + labelRadius * Math.sin(angle);
+                svg.innerHTML += `<text x="${labelX}" y="${labelY + 5}" class="chart-label">${key}</text>`;
+            });
+
+            // 3. 畫能力值區塊 (金色多邊形)
+            svg.innerHTML += `<polygon points="${polyPoints}" fill="rgba(201, 165, 92, 0.4)" stroke="#c9a55c" stroke-width="2" />`;
+            
+            // 4. 畫每個頂點的小圓點
+            keys.forEach((key, i) => {
+                const angle = (Math.PI * 2 * i) / total - (Math.PI / 2);
+                const value = stats[key];
+                const valRadius = radius * (value / 100);
+                const valX = centerX + valRadius * Math.cos(angle);
+                const valY = centerY + valRadius * Math.sin(angle);
+                svg.innerHTML += `<circle cx="${valX}" cy="${valY}" r="4" fill="#fff" stroke="#c9a55c" stroke-width="2" />`;
+            });
+        }
+
+        // --- 4. GM 控制功能 ---
+        function toggleGMMode() {
+            isGMMode = !isGMMode;
+            const panel = document.getElementById('gmControls');
+            const textArea = document.getElementById('saveOutput');
+            
+            if (isGMMode) {
+                panel.classList.add('show');
+                textArea.style.display = 'block';
+            } else {
+                panel.classList.remove('show');
+                textArea.style.display = 'none';
+            }
+        }
+
+        function renderGMInputs(student) {
+            const container = document.getElementById('statInputs');
+            container.innerHTML = "";
+            
+            for (let [key, value] of Object.entries(student.stats)) {
+                container.innerHTML += `
+                    <div class="stat-row">
+                        <span>${key}</span>
+                        <div>
+                            <span style="color:#f2d184; margin-right:5px;">${value}</span>
+                            <button class="btn-adj" onclick="adjustStat('${key}', -5)">-</button>
+                            <button class="btn-adj" onclick="adjustStat('${key}', 5)">+</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function adjustStat(key, delta) {
+            let val = studentData[currentStudentIndex].stats[key] + delta;
+            if (val > 100) val = 100;
+            if (val < 0) val = 0;
+            studentData[currentStudentIndex].stats[key] = val;
+            
+            // 立即重畫雷達圖
+            showStudent(currentStudentIndex);
+        }
+
+        function exportData() {
+            const jsonString = JSON.stringify(studentData, null, 4);
+            const textArea = document.getElementById('saveOutput');
+            textArea.value = "let studentData = " + jsonString + ";";
+            alert("存檔代碼已產生在下方！");
+        }
+    </script>
+</body>
+</html>
