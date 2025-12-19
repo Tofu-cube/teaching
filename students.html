@@ -227,40 +227,25 @@
         </div>
     </div>
 
-    <script>
-        // --- 1. 資料庫區 ---
-        let studentData = [
-            {
-                id: 1,
-                name: "艾利克斯",
-                level: 5,
-                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Alex", 
-                stats: { "單字": 80, "文法": 60, "口說": 40, "聽力": 70, "寫作": 50 }
-            },
-            {
-                id: 2,
-                name: "貝拉",
-                level: 8,
-                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Bella",
-                stats: { "單字": 50, "文法": 90, "口說": 60, "聽力": 80, "寫作": 85 }
-            },
-            {
-                id: 3,
-                name: "查理",
-                level: 3,
-                avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Charlie",
-                stats: { "單字": 40, "文法": 40, "口說": 90, "聽力": 50, "寫作": 30 }
-            }
-        ];
+    <script src="database.js"></script>
 
+    <script>
         let currentStudentIndex = 0;
         let isGMMode = false;
 
-        // --- 2. 程式邏輯區 ---
-
         window.onload = function() {
+            // 安全檢查：確認 database.js 有沒有載入成功
+            if (typeof studentData === 'undefined') {
+                alert("錯誤：讀取不到 studentData！\n請確認 database.js 檔案是否存在，且裡面有寫 const studentData = ...");
+                return;
+            }
+
             renderList();
-            showStudent(0);
+            
+            // 如果有資料，就顯示第一位學生
+            if (studentData.length > 0) {
+                showStudent(0);
+            }
         };
 
         function renderList() {
@@ -297,7 +282,7 @@
             renderGMInputs(s);
         }
 
-        // --- 3. 自製雷達圖核心 (不需外部工具) ---
+        // --- 自製雷達圖核心 (不需外部工具) ---
         function drawNativeRadar(stats) {
             const svg = document.getElementById('radarSvg');
             const keys = Object.keys(stats);
@@ -364,7 +349,7 @@
             });
         }
 
-        // --- 4. GM 控制功能 ---
+        // --- GM 控制功能 ---
         function toggleGMMode() {
             isGMMode = !isGMMode;
             const panel = document.getElementById('gmControls');
@@ -410,8 +395,11 @@
         function exportData() {
             const jsonString = JSON.stringify(studentData, null, 4);
             const textArea = document.getElementById('saveOutput');
-            textArea.value = "let studentData = " + jsonString + ";";
-            alert("存檔代碼已產生在下方！");
+            
+            // 這裡我已經幫你改好格式，加上 const，方便你直接覆蓋 database.js
+            textArea.value = "const studentData = " + jsonString + ";";
+            
+            alert("代碼已產生在下方！請複製並覆蓋 database.js 的內容。");
         }
     </script>
 </body>
