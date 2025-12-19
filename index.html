@@ -2,22 +2,114 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>我的首頁</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todd 老師的奇幻教室</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Noto+Serif+TC:wght@500&display=swap" rel="stylesheet">
+
+    <style>
+        /* 2. 網站基礎設定 */
+        body, html {
+            height: 100%; /* 讓網頁佔滿整個視窗高度 */
+            margin: 0;
+            font-family: 'Noto Serif TC', serif; /* 預設使用襯線字體 */
+            overflow: hidden; /* 隱藏捲軸，打造遊戲標題畫面的感覺 */
+        }
+
+        /* 3. 設定全螢幕背景與遮罩 */
+        .bg-image {
+            /* 這裡設定背景圖片，並加上一層深棕色漸層濾鏡，讓文字更清楚 */
+            background-image: linear-gradient(rgba(30, 20, 10, 0.6), rgba(10, 5, 0, 0.8)), url('fantasy-bg.jpg');
+            
+            height: 100%; /* 佔滿高度 */
+            background-position: center; /* 圖片置中 */
+            background-repeat: no-repeat; /* 不重複 */
+            background-size: cover; /* 讓圖片等比例縮放填滿畫面 */
+            position: relative;
+            
+            /* 使用 Flexbox 讓內容在畫面正中央對齊 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff; /* 整體文字顏色設為白色 */
+            text-align: center;
+        }
+
+        /* 4. 主要標題區塊 */
+        .hero-content {
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8); /* 文字陰影增加立體感 */
+        }
+
+        /* 主標題樣式 */
+        h1.main-title {
+            font-family: 'Cinzel Decorative', cursive; /* 使用引入的奇幻英文字體 */
+            font-size: 5em; /* 超大字體 */
+            margin: 0;
+            color: #f2d184; /* 類似薩爾達傳說的金黃色 */
+            letter-spacing: 5px; /* 字距拉開更有氣勢 */
+        }
+
+        /* 副標題樣式 */
+        p.subtitle {
+            font-size: 1.5em;
+            color: #ccc;
+            margin-top: 10px;
+        }
+
+        /* 5. 導覽列樣式 (重點！) */
+        nav ul {
+            padding: 0;
+            list-style-type: none; /* 移除清單前面的黑點 */
+            display: flex; /* 讓選項橫向排列 */
+            gap: 30px; /* 選項之間的間距 */
+        }
+
+        /* 連結按鈕的基本樣式 */
+        nav ul li a {
+            text-decoration: none; /* 移除底線 */
+            color: #f2d184; /* 金黃色文字 */
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 2px solid transparent; /* 先給一個透明邊框佔位 */
+            transition: all 0.3s ease; /* 讓滑鼠移過去的變化有動畫效果 */
+            position: relative;
+        }
+
+        /* 6. 滑鼠移到連結上的特效 (Hoever Effect) */
+        nav ul li a:hover {
+            color: #fff; /* 文字變白 */
+            border-color: #f2d184; /* 邊框變金黃色 */
+            background-color: rgba(242, 209, 132, 0.2); /* 背景出現半透明金色 */
+            box-shadow: 0 0 15px rgba(242, 209, 132, 0.6); /* 加上發光效果 */
+            text-shadow: 0 0 10px #f2d184; /* 文字也要發光 */
+        }
+
+    </style>
 </head>
 <body>
 
-    <nav>
-        <ul>
-            <li><a href="index.html">首頁</a></li>
-            <li><a href="about.html">關於我</a></li>
-            <li><a href="portfolio.html">作品集</a></li>
-            <li><a href="contact.html">聯絡我</a></li>
-        </ul>
-    </nav>
-    <hr>
+    <div class="bg-image">
+        
+        <div class="hero-content">
+            <h1 class="main-title">TODD'S CLASS</h1>
+            <p class="subtitle">準備好開始你的學習冒險了嗎？</p>
+        </div>
 
-    <h1>歡迎來到我的網站！</h1>
-    <p>這是首頁的內容。</p>
+        <nav>
+            <ul>
+                <li><a href="index.html">冒險起點 (首頁)</a></li>
+                <li><a href="about.html">導師大廳 (關於我)</a></li>
+                <li><a href="portfolio.html">任務卷軸 (作品集)</a></li>
+                <li><a href="contact.html">傳送訊息 (聯絡我)</a></li>
+            </ul>
+        </nav>
+
+    </div>
 
 </body>
 </html>
