@@ -163,7 +163,7 @@
             font-weight: bold;
         }
 
-        /* GM 控制區 */
+        /* GM 控制區 (唯讀提示) */
         .gm-panel {
             position: absolute;
             bottom: 20px;
@@ -173,20 +173,10 @@
             padding: 15px;
             border-radius: 5px;
             width: 250px;
-            display: none; /* 預設隱藏 */
+            display: none; 
             z-index: 100;
         }
         .gm-panel.show { display: block; }
-        
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #aaa; font-size: 0.9em; }
-        .btn-adj { 
-            background: #333; color: #fff; border: 1px solid #555; 
-            width: 24px; height: 24px; cursor: pointer; margin-left: 3px;
-        }
-        .btn-adj:hover { background: #c9a55c; color: #000; }
-
-        .save-area { position: absolute; bottom: 20px; right: 300px; }
-        textarea { width: 300px; height: 100px; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; display: none;}
     </style>
 </head>
 <body>
@@ -214,39 +204,78 @@
                     <svg id="radarSvg" viewBox="0 0 400 400"></svg>
                     
                     <div id="gmControls" class="gm-panel">
-                        <h4 style="color:#c9a55c; margin:0 0 10px 0; border-bottom:1px solid #444; padding-bottom:5px;">數值調整</h4>
-                        <div id="statInputs"></div>
-                        <button onclick="exportData()" style="width:100%; margin-top:10px; background:#c9a55c; border:none; padding:5px; cursor:pointer; font-weight:bold;">產生代碼</button>
+                        <h4 style="color:#c9a55c; margin:0 0 10px 0;">Google Sheet 模式</h4>
+                        <p style="color:#aaa; font-size:0.9em;">資料已連動，請在 Google Sheet 修改後稍等 3 分鐘，重新整理此網頁即可更新。</p>
                     </div>
                 </div>
-            </div>
-            
-            <div class="save-area">
-                <textarea id="saveOutput" placeholder="複製這裡的代碼..."></textarea>
             </div>
         </div>
     </div>
 
-    <script src="database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <script>
+        // 1. 設定 Google Sheet 連結 (包含防止快取機制)
+        // 請務必把下面這個 originalUrl 換成你自己的 CSV 連結！
+        const originalUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRYtYIUNIP08aW_WqUgo5eZyJciHcDd2BpBonr2PR3ixHr4BZ0EznfmHTeuKp3BnVITwtGvp6PHMaV_/pub?output=csv';
+        
+        // 加上時間戳記，強迫讀取最新資料
+        const urlWithTime = originalUrl + '&t=' + Date.now();
+        
+        // 加上 CORS Proxy
+        const googleSheetUrl = 'https://corsproxy.io/?' + encodeURIComponent(urlWithTime);
+
+        let studentData = []; 
         let currentStudentIndex = 0;
         let isGMMode = false;
 
         window.onload = function() {
-            // 安全檢查：確認 database.js 有沒有載入成功
-            if (typeof studentData === 'undefined') {
-                alert("錯誤：讀取不到 studentData！\n請確認 database.js 檔案是否存在，且裡面有寫 const studentData = ...");
-                return;
-            }
-
-            renderList();
-            
-            // 如果有資料，就顯示第一位學生
-            if (studentData.length > 0) {
-                showStudent(0);
-            }
+            loadGoogleSheetData();
         };
+
+        function loadGoogleSheetData() {
+            console.log("正在讀取 Google Sheet...", googleSheetUrl);
+            
+            Papa.parse(googleSheetUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    console.log("讀取成功！", results.data);
+                    
+                    // 資料轉換
+                    studentData = results.data
+                        .filter(row => row.id && row.name) // 過濾掉空行
+                        .map(row => {
+                            // 這裡非常重要：如果 Google Sheet 欄位名稱不一樣，讀出來就會是 0 (圖表會不見)
+                            return {
+                                id: row.id,
+                                name: row.name,
+                                level: parseInt(row.level),
+                                avatar: row.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=default",
+                                stats: {
+                                    // 請確保你的 Google Sheet 標題列也是 Vocab, Grammar, Speaking...
+                                    "單字": parseInt(row.Vocab || 0),
+                                    "文法": parseInt(row.Grammar || 0),
+                                    "口說": parseInt(row.Speaking || 0),
+                                    "聽力": parseInt(row.Listening || 0),
+                                    "寫作": parseInt(row.Writing || 0)
+                                }
+                            };
+                        });
+
+                    if (studentData.length > 0) {
+                        renderList();
+                        showStudent(0);
+                    } else {
+                        alert("讀取成功但沒有資料？請檢查 Google Sheet 標題列是否正確。");
+                    }
+                },
+                error: function(err) {
+                    console.error(err);
+                    alert("讀取失敗，請查看 Console (F12) 的錯誤訊息。");
+                }
+            });
+        }
 
         function renderList() {
             const list = document.getElementById('studentList');
@@ -276,26 +305,39 @@
 
             renderList();
             
-            // 呼叫我們自己寫的雷達圖繪製功能
-            drawNativeRadar(s.stats);
-            
-            renderGMInputs(s);
+            // 呼叫原生雷達圖繪製 (絕對不能少！)
+            if (typeof drawNativeRadar === 'function') {
+                drawNativeRadar(s.stats);
+            } else {
+                console.error("找不到 drawNativeRadar 函式！");
+            }
         }
 
-        // --- 自製雷達圖核心 (不需外部工具) ---
+        function toggleGMMode() {
+            isGMMode = !isGMMode;
+            const panel = document.getElementById('gmControls');
+            if (isGMMode) {
+                panel.classList.add('show');
+            } else {
+                panel.classList.remove('show');
+            }
+        }
+
+        // --- 原生 SVG 雷達圖繪製函式 ---
         function drawNativeRadar(stats) {
             const svg = document.getElementById('radarSvg');
+            if (!svg) return;
+
             const keys = Object.keys(stats);
             const total = keys.length;
-            const radius = 120; // 半徑大小
-            const centerX = 200; // SVG 中心點 X
-            const centerY = 200; // SVG 中心點 Y
+            const radius = 120; // 半徑
+            const centerX = 200; 
+            const centerY = 200; 
             
-            // 清空舊圖
-            svg.innerHTML = "";
+            svg.innerHTML = ""; // 清空舊圖
 
-            // 1. 畫背景網格 (同心五角形/多邊形)
-            for (let r = 1; r <= 5; r++) { // 畫 5 層圈圈
+            // 1. 畫背景網格
+            for (let r = 1; r <= 5; r++) { 
                 let gridPoints = "";
                 let curRadius = radius * (r / 5);
                 for (let i = 0; i < total; i++) {
@@ -304,41 +346,38 @@
                     const y = centerY + curRadius * Math.sin(angle);
                     gridPoints += `${x},${y} `;
                 }
-                // 畫出網格線
                 svg.innerHTML += `<polygon points="${gridPoints}" fill="none" stroke="#333" stroke-width="1" />`;
             }
 
-            // 2. 畫軸線 (從中心射出去的線)
-            let polyPoints = ""; // 紀錄能力值多邊形的點
+            // 2. 畫軸線與數值
+            let polyPoints = ""; 
             
             keys.forEach((key, i) => {
                 const angle = (Math.PI * 2 * i) / total - (Math.PI / 2);
                 
-                // 軸線終點
+                // 軸線
                 const lineX = centerX + radius * Math.cos(angle);
                 const lineY = centerY + radius * Math.sin(angle);
-                
-                // 畫軸線
                 svg.innerHTML += `<line x1="${centerX}" y1="${centerY}" x2="${lineX}" y2="${lineY}" stroke="#444" stroke-width="1" />`;
                 
-                // 計算能力值座標
+                // 數值點位置
                 const value = stats[key];
                 const valRadius = radius * (value / 100);
                 const valX = centerX + valRadius * Math.cos(angle);
                 const valY = centerY + valRadius * Math.sin(angle);
                 polyPoints += `${valX},${valY} `;
 
-                // 畫文字標籤
-                const labelRadius = radius + 25; // 文字離中心更遠一點
+                // 文字標籤
+                const labelRadius = radius + 25; 
                 const labelX = centerX + labelRadius * Math.cos(angle);
                 const labelY = centerY + labelRadius * Math.sin(angle);
                 svg.innerHTML += `<text x="${labelX}" y="${labelY + 5}" class="chart-label">${key}</text>`;
             });
 
-            // 3. 畫能力值區塊 (金色多邊形)
+            // 3. 畫能力區域 (金色區塊)
             svg.innerHTML += `<polygon points="${polyPoints}" fill="rgba(201, 165, 92, 0.4)" stroke="#c9a55c" stroke-width="2" />`;
             
-            // 4. 畫每個頂點的小圓點
+            // 4. 畫頂點圓圈
             keys.forEach((key, i) => {
                 const angle = (Math.PI * 2 * i) / total - (Math.PI / 2);
                 const value = stats[key];
@@ -347,59 +386,6 @@
                 const valY = centerY + valRadius * Math.sin(angle);
                 svg.innerHTML += `<circle cx="${valX}" cy="${valY}" r="4" fill="#fff" stroke="#c9a55c" stroke-width="2" />`;
             });
-        }
-
-        // --- GM 控制功能 ---
-        function toggleGMMode() {
-            isGMMode = !isGMMode;
-            const panel = document.getElementById('gmControls');
-            const textArea = document.getElementById('saveOutput');
-            
-            if (isGMMode) {
-                panel.classList.add('show');
-                textArea.style.display = 'block';
-            } else {
-                panel.classList.remove('show');
-                textArea.style.display = 'none';
-            }
-        }
-
-        function renderGMInputs(student) {
-            const container = document.getElementById('statInputs');
-            container.innerHTML = "";
-            
-            for (let [key, value] of Object.entries(student.stats)) {
-                container.innerHTML += `
-                    <div class="stat-row">
-                        <span>${key}</span>
-                        <div>
-                            <span style="color:#f2d184; margin-right:5px;">${value}</span>
-                            <button class="btn-adj" onclick="adjustStat('${key}', -5)">-</button>
-                            <button class="btn-adj" onclick="adjustStat('${key}', 5)">+</button>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function adjustStat(key, delta) {
-            let val = studentData[currentStudentIndex].stats[key] + delta;
-            if (val > 100) val = 100;
-            if (val < 0) val = 0;
-            studentData[currentStudentIndex].stats[key] = val;
-            
-            // 立即重畫雷達圖
-            showStudent(currentStudentIndex);
-        }
-
-        function exportData() {
-            const jsonString = JSON.stringify(studentData, null, 4);
-            const textArea = document.getElementById('saveOutput');
-            
-            // 這裡我已經幫你改好格式，加上 const，方便你直接覆蓋 database.js
-            textArea.value = "const studentData = " + jsonString + ";";
-            
-            alert("代碼已產生在下方！請複製並覆蓋 database.js 的內容。");
         }
     </script>
 </body>
